@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prototype Langage Harmonique</title>
+  <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+  <h1 class="titre">Langage Harmonique 🌿</h1>
+  <div class="carre"></div>
+
+  <!-- Ici, on charge notre langage expérimental -->
+  <script type="text/harm" src="main.harm"></script>
+
+  <!-- Interpréteur amélioré pour le langage harmonique -->
+  <script>
+    class HarmoniqueInterpreter {
+      constructor() {
+        this.phi = 1.618033988749;
+        this.variables = new Map();
+        this.functions = new Map();
+        
+        // Fonctions prédéfinies
+        this.functions.set('fib', (n) => {
+          if (n < 2) return n;
+          let a = 0, b = 1;
+          for (let i = 2; i <= n; i++) {
+            [a, b] = [b, a + b];
+          }
+          return b;
+        });
+      }
+
+      parseLine(line) {
+        line = line.trim();
+        if (!line || line.startsWith('#')) return null;
+
+        // Parser les déclarations "use"
+        if (line.startsWith('use ')) {
+          const match = line.match(/use\s+(\w+)\s*=\s*(.+)/);
+          if (match) {
+            const [, varName, expression] = match;
+            this.variables.set(varName, this.evaluateExpression(expression));
+            console.log(`Variable définie: ${varName} = ${this.variables.get(varName)}`);
+          }
+          return null;
+        }
+
+        // Parser les événements "on"
+        if (line.startsWith('on ')) {
+          const match = line.match(/on\s+(\w+)\s*=>\s*(.+)/);
+          if (match) {
+            const [, event, actions] = match;
+            return { type: 'event', event, actions };
+          }
+        }
+
+        return null;
+      }
+
+      evaluateExpression(expr) {
+        expr = expr.trim();
+        
+        // Remplacer φ par sa valeur
+        expr = expr.replace(/φ/g, this.phi.toString());
+        
+        // Gérer les appels de fonction comme fib(8)
+        const funcMatch = expr.match(/(\w+)\((\d+)\)/);
+        if (funcMatch) {
+          const [, funcName, arg] = funcMatch;
+          if (this.functions.has(funcName)) {
+            return this.functions.get(funcName)(parseInt(arg));
+          }
+        }
+
+        // Évaluer les expressions mathématiques simples
+        try {
+          return eval(expr);
+        } catch (e) {
+          console.warn(`Impossible d'évaluer: ${expr}`, e);
+          return expr;
+        }
+      }
+
+      executeEvent(eventData, element) {
+        const { event, actions } = eventData;
+        
+        if (event === 'hover') {
+          element.addEventListener('mouseover', () => {
+            this.executeActions(actions, element);
+          });
+          
+          element.addEventListener('mouseout', () => {
+            element.style.transform = 'scale(1) rotate(0deg)';
+          });
+        }
+      }
+
+      executeActions(actions, element) {
+        // Parser les actions comme "scale φ rotate 61.8"
+        const parts = actions.split(/\s+/);
+        let transform = '';
+        
+        for (let i = 0; i < parts.length; i++) {
+          if (parts[i] === 'scale' && i + 1 < parts.length) {
+            const scaleValue = this.evaluateExpression(parts[i + 1]);
+            transform += `scale(${scaleValue}) `;
+            i++;
+          } else if (parts[i] === 'rotate' && i + 1 < parts.length) {
+            const rotateValue = this.evaluateExpression(parts[i + 1]);
+            transform += `rotate(${rotateValue}deg) `;
+            i++;
+          }
+        }
+        
+        if (transform) {
+          element.style.transform = transform.trim();
+        }
+      }
+
+      async interpret() {
+        try {
+          const response = await fetch("main.harm");
+          if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+          }
+          
+          const code = await response.text();
+          console.log("Code chargé:", code);
+          
+          const lines = code.split('\n');
+          const carre = document.querySelector('.carre');
+          
+          if (!carre) {
+            console.error("Élément .carre non trouvé");
+            return;
+          }
+
+          for (const line of lines) {
+            const parsed = this.parseLine(line);
+            if (parsed && parsed.type === 'event') {
+              this.executeEvent(parsed, carre);
+              console.log(`Événement configuré: ${parsed.event} => ${parsed.actions}`);
+            }
+          }
+          
+          console.log("Interprétation terminée avec succès!");
+          
+        } catch (error) {
+          console.error("Erreur lors de l'interprétation:", error);
+          
+          // Fallback si le fichier ne peut pas être chargé
+          const carre = document.querySelector('.carre');
+          if (carre) {
+            carre.addEventListener('mouseover', () => {
+              carre.style.transform = `scale(${this.phi}) rotate(61.8deg)`;
+            });
+            carre.addEventListener('mouseout', () => {
+              carre.style.transform = 'scale(1) rotate(0deg)';
+            });
+            console.log("Mode fallback activé");
+          }
+        }
+      }
+    }
+
+    // Démarrer l'interpréteur quand la page est chargée
+    document.addEventListener('DOMContentLoaded', () => {
+      const interpreter = new HarmoniqueInterpreter();
+      interpreter.interpret();
+    });
+  </script>
+</body>
+</html>

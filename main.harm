@@ -1,0 +1,7 @@
+Fichier expérimental du langage harmonique
+
+use φ = 1.618
+use rhythm = fib(8)
+
+on hover => scale φ rotate 61.8
+
