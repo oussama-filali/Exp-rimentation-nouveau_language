@@ -1,7 +1,8 @@
-Fichier expérimental du langage harmonique
+# Fichier expérimental du langage harmonique
+# φ (nombre d'or) et Fibonacci pilotent les proportions du mouvement
 
 use φ = 1.618
 use rhythm = fib(8)
 
 on hover => scale φ rotate 61.8
-
+on click => scale φ spiral rhythm

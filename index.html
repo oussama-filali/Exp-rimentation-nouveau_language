@@ -9,6 +9,7 @@
 <body>
   <h1 class="titre">Langage Harmonique 🌿</h1>
   <div class="carre"></div>
+  <p class="hint">Survole le carré… puis clique (spirale dorée).</p>
 
   <!-- Ici, on charge notre langage expérimental -->
   <script type="text/harm" src="main.harm"></script>
@@ -18,6 +19,7 @@
     class HarmoniqueInterpreter {
       constructor() {
         this.phi = 1.618033988749;
+        this.goldenAngle = 137.50776405; // angle d'or : 360° / φ²
         this.variables = new Map();
         this.functions = new Map();
         
@@ -36,9 +38,9 @@
         line = line.trim();
         if (!line || line.startsWith('#')) return null;
 
-        // Parser les déclarations "use"
+        // Parser les déclarations "use" (identifiants Unicode : φ, rhythm…)
         if (line.startsWith('use ')) {
-          const match = line.match(/use\s+(\w+)\s*=\s*(.+)/);
+          const match = line.match(/use\s+([\p{L}\p{N}_]+)\s*=\s*(.+)/u);
           if (match) {
             const [, varName, expression] = match;
             this.variables.set(varName, this.evaluateExpression(expression));
@@ -61,8 +63,14 @@
 
       evaluateExpression(expr) {
         expr = expr.trim();
-        
-        // Remplacer φ par sa valeur
+
+        // Substituer les variables déclarées via "use" (les plus longues d'abord)
+        const names = [...this.variables.keys()].sort((a, b) => b.length - a.length);
+        for (const name of names) {
+          expr = expr.split(name).join(this.variables.get(name).toString());
+        }
+
+        // φ prédéfini (utilisé si non redéclaré via "use")
         expr = expr.replace(/φ/g, this.phi.toString());
         
         // Gérer les appels de fonction comme fib(8)
@@ -87,12 +95,32 @@
         const { event, actions } = eventData;
         
         if (event === 'hover') {
+          this.hoverActions = actions;
           element.addEventListener('mouseover', () => {
+            if (element.dataset.harmLocked === 'true') return;
             this.executeActions(actions, element);
           });
-          
+
           element.addEventListener('mouseout', () => {
+            if (element.dataset.harmLocked === 'true') return;
             element.style.transform = 'scale(1) rotate(0deg)';
+          });
+        }
+
+        if (event === 'click') {
+          element.addEventListener('click', () => {
+            const locked = element.dataset.harmLocked === 'true';
+            element.dataset.harmLocked = locked ? 'false' : 'true';
+            if (locked) {
+              // Relâcher : reprendre l'effet hover si le curseur est encore dessus
+              if (this.hoverActions && element.matches(':hover')) {
+                this.executeActions(this.hoverActions, element);
+              } else {
+                element.style.transform = 'scale(1) rotate(0deg)';
+              }
+            } else {
+              this.executeActions(actions, element);
+            }
           });
         }
       }
@@ -111,6 +139,11 @@
             const rotateValue = this.evaluateExpression(parts[i + 1]);
             transform += `rotate(${rotateValue}deg) `;
             i++;
+          } else if (parts[i] === 'spiral' && i + 1 < parts.length) {
+            // spiral n : rotation de n pas d'angle d'or (phyllotaxie)
+            const steps = this.evaluateExpression(parts[i + 1]);
+            transform += `rotate(${(steps * this.goldenAngle).toFixed(1)}deg) `;
+            i++;
           }
         }
         
@@ -121,7 +154,10 @@
 
       async interpret() {
         try {
-          const response = await fetch("main.harm");
+          // La source est déclarée par le tag <script type="text/harm" src="...">
+          const harmTag = document.querySelector('script[type="text/harm"]');
+          const src = harmTag ? harmTag.getAttribute('src') : 'main.harm';
+          const response = await fetch(src);
           if (!response.ok) {
             throw new Error(`Erreur HTTP: ${response.status}`);
           }

@@ -22,3 +22,10 @@ body {
   transition: transform 1.618s ease-in-out;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
 }
+
+.hint {
+  margin-top: 38.2px; /* 100 / φ² */
+  color: #8a7a55;
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+}
